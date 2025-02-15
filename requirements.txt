@@ -1,0 +1,7 @@
+flask
+requests
+wheel
+google-cloud-datastore
+google-cloud-firestore
+gunicorn
+rsa

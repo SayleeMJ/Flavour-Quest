@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Search Results</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDzQYs_ynQ18mfGnIk2n75C7GJRCOz6B5Q"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+<h1>Recommended Restaurants </h1>
+<div id="map" ></div>
+{% if restaurants %}
+<ul>
+    {% for restaurant in restaurants %}
+    <li class="card">
+        <div class="card-body">
+            <h2 class="card-title">{{ restaurant.name }}</h2>
+            <p class="card-text">Ratings: {{ restaurant.rating }}</p>
+            <p class="card-text">Reviews: {{ restaurant.review_count }}</p>
+            <p class="card-text">
+                Address: {{ restaurant.location.address1 }}, {{ restaurant.location.city }}, {{ restaurant.location.state }}, {{ restaurant.location.zip_code }}
+            </p>
+            <script>
+                function initMap() {
+                    var latitude = {{ restaurant.coordinates.latitude }};
+                    var longitude = {{ restaurant.coordinates.longitude }};
+                    var location = { lat: latitude, lng: longitude };
+                    var map = new google.maps.Map(document.getElementById("map"), {
+                        zoom: 20,
+                        center: location,
+                    });
+                    new google.maps.Marker({
+                        position: location,
+                        map: map,
+                    });
+                }
+                initMap();
+            </script>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<h1 class="h1-style">No restaurants found.</h1>
+{% endif %}
+
+</body>
+</html>
