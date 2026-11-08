@@ -5,3 +5,4 @@ google-cloud-datastore
 google-cloud-firestore
 gunicorn
 rsa
+python-dotenv
