@@ -1,0 +1,13 @@
+# Environment variables and secrets
+.env
+.env.*
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# IDE
+.idea/
+.vscode/
+python-dotenv
