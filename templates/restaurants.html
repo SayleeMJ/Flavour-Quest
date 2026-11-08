@@ -1,48 +1,433 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Search Results</title>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDzQYs_ynQ18mfGnIk2n75C7GJRCOz6B5Q"></script>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Flavour Quest | Restaurant Discovery</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='styles.css') }}">
 </head>
+
 <body>
 
-<h1>Recommended Restaurants </h1>
-<div id="map" ></div>
-{% if restaurants %}
-<ul>
-    {% for restaurant in restaurants %}
-    <li class="card">
-        <div class="card-body">
-            <h2 class="card-title">{{ restaurant.name }}</h2>
-            <p class="card-text">Ratings: {{ restaurant.rating }}</p>
-            <p class="card-text">Reviews: {{ restaurant.review_count }}</p>
-            <p class="card-text">
-                Address: {{ restaurant.location.address1 }}, {{ restaurant.location.city }}, {{ restaurant.location.state }}, {{ restaurant.location.zip_code }}
+    <nav class="navbar navbar-expand-lg navbar-light bg-white">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                Flavour Quest
+            </a>
+            <span class="navbar-text">
+                Discover your next favourite place
+            </span>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+
+        <section class="results-header">
+            <p class="text-uppercase small fw-semibold">Explore local food</p>
+
+            <h1>Restaurants near you</h1>
+
+            <p>
+                Showing restaurants around
+                <strong>{{ searched_location }}</strong>
             </p>
-            <script>
-                function initMap() {
-                    var latitude = {{ restaurant.coordinates.latitude }};
-                    var longitude = {{ restaurant.coordinates.longitude }};
-                    var location = { lat: latitude, lng: longitude };
-                    var map = new google.maps.Map(document.getElementById("map"), {
-                        zoom: 20,
-                        center: location,
-                    });
-                    new google.maps.Marker({
-                        position: location,
-                        map: map,
+
+            <p class="text-muted" id="restaurantCount" data-search-radius="{{ search_radius }}">
+                {{ restaurants|length }} restaurants Shown
+                within {{ search_radius }} km
+            </p>
+
+            <a href="/" class="btn btn-outline-dark">
+                ← Search another location
+            </a>
+        </section>
+
+        {% if restaurants %}
+
+            <!-- Restaurant filters -->
+            <div class="filter-toolbar">
+
+                <div class="filter-search">
+                    <label for="restaurantSearch">Find a restaurant</label>
+                    <input
+                        type="search"
+                        id="restaurantSearch"
+                        placeholder="Search by restaurant name..."
+                    >
+                </div>
+
+                <div class="filter-control">
+                    <label for="distanceFilter">Distance</label>
+                    <select id="distanceFilter">
+                        <option value="all">Any distance</option>
+                        <option value="0.5">Within 0.5 km</option>
+                        <option value="1">Within 1 km</option>
+                        <option value="2">Within 2 km</option>
+                        <option value="5">Within 5 km</option>
+                    </select>
+                </div>
+
+                <div class="filter-control">
+                    <label for="sortFilter">Sort by</label>
+                    <select id="sortFilter">
+                        <option value="nearest">Nearest first</option>
+                        <option value="farthest">Farthest first</option>
+                    </select>
+                </div>
+
+                <button type="button" id="clearFilters">
+                    Clear filters
+                </button>
+
+            </div>
+            
+            <div class="row g-4">
+        
+                <!-- Restaurant listings -->
+                <div class="col-lg-7">
+
+                    <div class="restaurant-grid">
+
+                        {% for restaurant in restaurants %}
+                        <article class="restaurant-card"
+                            id="restaurant-{{ loop.index0 }}"
+                            data-restaurant-index="{{ loop.index0 }}"
+                            onclick="focusRestaurant(Number(this.dataset.restaurantIndex))"
+                        >
+                            <div class="restaurant-card-body">
+                                <div class="restaurant-card-top">
+                                    <h2 class="restaurant-name">
+                                        {{ restaurant.name }}
+                                    </h2>
+
+                                    <span class="distance-badge">
+                                        {% if restaurant.distance < 1 %}
+                                            {{ (restaurant.distance * 1000)|round|int }} m
+                                        {% else %}
+                                            {{ "%.2f"|format(restaurant.distance) }} km
+                                        {% endif %}
+                                    </span>
+                                </div>
+
+                                <div class="restaurant-category">
+                                    {% if 'catering.restaurant' in restaurant.categories %}
+                                        <span class="cuisine-label">Restaurant</span>
+                                    {% else %}
+                                        <span class="cuisine-label">Food &amp; Dining</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="restaurant-address">
+                                    <span class="address-icon">📍</span>
+                                    <span>{{ restaurant.address }}</span>
+                                </div>
+
+                                <div class="restaurant-card-footer">
+                                    <a
+                                        href="https://www.google.com/maps/search/?api=1&amp;query={{ (restaurant.name ~ ', ' ~ restaurant.address)|urlencode }}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onclick="event.stopPropagation()"
+                                    >
+                                    <span>📍 Get Directions </span>
+                                    </a>
+                                    <span>↗</span>
+                                </div>
+                            </div>
+                        </article>
+                        {% endfor %}
+
+                    </div>
+                    <p id="noFilterResults" class="filter-empty" hidden>
+                        No restaurants match your filters. Try changing your search.
+                    </p>
+
+                </div>
+
+                <!-- Interactive map -->
+                <div class="col-lg-5">
+
+                    <div class="map-container">
+                        <div class="map-heading">
+                            <h2>Explore the map</h2>
+                            <p>Click a marker to discover a restaurant.</p>
+                        </div>
+
+                        <div id="map"></div>
+
+                        <p class="map-attribution">
+                            Map data ©
+                            <a href="https://www.openstreetmap.org/copyright"
+                            target="_blank"
+                            rel="noopener noreferrer">
+                                OpenStreetMap contributors
+                            </a>
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+            {% else %}
+
+            <div class="empty-state">
+                <h2>No restaurants found</h2>
+                <p>Try another location or a different search area.</p>
+                <a href="/" class="btn btn-dark">Search again</a>
+            </div>
+
+        {% endif %}
+
+    </main>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    {% if restaurants %}
+
+    <script id="restaurant-data" type="application/json">{{ restaurants | tojson }}</script>
+
+    <script>
+            
+        const restaurantData = JSON.parse(
+            document.getElementById('restaurant-data').textContent
+        );
+
+        // DOM elements
+        const searchInput = document.getElementById('restaurantSearch');
+        const distanceFilter = document.getElementById('distanceFilter');
+        const sortFilter = document.getElementById('sortFilter');
+        const clearButton = document.getElementById('clearFilters');
+        const restaurantCount = document.getElementById('restaurantCount');
+        const noResultsMessage = document.getElementById('noFilterResults');
+        const restaurantGrid = document.querySelector('.restaurant-grid');
+
+        // Map initialization
+        const map = L.map('map');
+
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }
+        ).addTo(map);
+
+        // Store markers using their original restaurant indexes
+        const markers = [];
+
+        restaurantData.forEach((restaurant, index) => {
+
+            const marker = L.marker([
+                restaurant.coordinates.latitude,
+                restaurant.coordinates.longitude
+            ]);
+
+            const formattedDistance = restaurant.distance < 1
+            ? `${Math.round(restaurant.distance * 1000)} m`
+            : `${restaurant.distance.toFixed(2)} km`;
+
+            marker.bindPopup(`
+            <strong>${escapeHTML(restaurant.name)}</strong><br>
+            ${escapeHTML(restaurant.address)}<br>
+            ${formattedDistance} away
+            `);
+
+            marker.on('click', () => {
+                highlightCard(index, true);
+            });
+
+            markers[index] = marker;
+        });
+
+        // Display all restaurant markers initially
+        const allBounds = restaurantData.map(restaurant => [
+            restaurant.coordinates.latitude,
+            restaurant.coordinates.longitude
+        ]);
+
+        if (allBounds.length === 1) {
+            map.setView(allBounds[0], 16);
+        } else if (allBounds.length > 1) {
+            map.fitBounds(allBounds, { padding: [35, 35] });
+        }
+
+        // Focus a restaurant on the map
+        function focusRestaurant(index) {
+
+            const marker = markers[index];
+
+            if (!marker || !map.hasLayer(marker)) return;
+
+            map.setView(marker.getLatLng(), 17);
+            marker.openPopup();
+
+            highlightCard(index);
+        }
+
+        // Highlight selected card
+        function highlightCard(index, shouldScroll = false) {
+
+            // Remove previous card selection
+            document.querySelectorAll('.restaurant-card')
+                .forEach(card => card.classList.remove('selected'));
+
+            // Find the corresponding restaurant card
+            const selectedCard =
+                document.getElementById(`restaurant-${index}`);
+
+            if (selectedCard && !selectedCard.hidden) {
+
+                // Highlight the selected card
+                selectedCard.classList.add('selected');
+
+                // Scroll to the card when a map marker is clicked
+                if (shouldScroll) {
+                    selectedCard.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
                     });
                 }
-                initMap();
-            </script>
-        </div>
-    </li>
-    {% endfor %}
-</ul>
-{% else %}
-<h1 class="h1-style">No restaurants found.</h1>
-{% endif %}
+            }
+        }
+
+        // Apply all selected filters
+        function applyFilters() {
+
+            const searchTerm = searchInput.value.trim().toLowerCase();
+            const selectedDistance = distanceFilter.value;
+            const sortOrder = sortFilter.value;
+
+            let visibleRestaurants = [];
+
+            restaurantData.forEach((restaurant, index) => {
+
+                const card = document.getElementById(`restaurant-${index}`);
+
+                const matchesName = restaurant.name
+                    .toLowerCase()
+                    .includes(searchTerm);
+
+                const matchesDistance =
+                    selectedDistance === 'all' ||
+                    restaurant.distance <= Number(selectedDistance);
+
+                const isVisible = matchesName && matchesDistance;
+
+                card.hidden = !isVisible;
+
+                if (isVisible) {
+                    visibleRestaurants.push({ restaurant, index });
+                }
+
+                // Update corresponding map marker
+                if (isVisible) {
+                    if (!map.hasLayer(markers[index])) {
+                        markers[index].addTo(map);
+                    }
+                } else {
+                    if (map.hasLayer(markers[index])) {
+                        map.removeLayer(markers[index]);
+                    }
+                }
+            });
+
+            // Sort visible cards
+            visibleRestaurants.sort((a, b) => {
+
+                if (sortOrder === 'farthest') {
+                    return b.restaurant.distance - a.restaurant.distance;
+                }
+
+                return a.restaurant.distance - b.restaurant.distance;
+            });
+
+            // Reorder existing cards without recreating them
+            visibleRestaurants.forEach(item => {
+                restaurantGrid.appendChild(
+                    document.getElementById(`restaurant-${item.index}`)
+                );
+            });
+
+            // Update result count
+            restaurantCount.textContent =
+                `${visibleRestaurants.length} restaurants shown` +
+                ` within ${searchRadiusText()} km`;
+
+            // Show empty-state message when nothing matches
+            noResultsMessage.hidden = visibleRestaurants.length > 0;
+
+            // Clear selection if its card is no longer visible
+            const selectedCard = document.querySelector('.restaurant-card.selected');
+
+            if (selectedCard && selectedCard.hidden) {
+                selectedCard.classList.remove('selected');
+            }
+
+            // Adjust map to visible markers
+            const visibleBounds = visibleRestaurants.map(item => [
+                item.restaurant.coordinates.latitude,
+                item.restaurant.coordinates.longitude
+            ]);
+
+            if (visibleBounds.length === 1) {
+                map.setView(visibleBounds[0], 16);
+            } else if (visibleBounds.length > 1) {
+                map.fitBounds(visibleBounds, { padding: [35, 35] });
+            }
+        }
+
+        // Read original search radius from Flask-rendered page
+        const searchRadius = Number(document.getElementById('restaurantCount').dataset.searchRadius);
+
+        function searchRadiusText() {
+            return searchRadius;
+        }
+
+        // Filter event listeners
+        searchInput.addEventListener('input', applyFilters);
+        distanceFilter.addEventListener('change', applyFilters);
+        sortFilter.addEventListener('change', applyFilters);
+
+        // Reset all filters
+        clearButton.addEventListener('click', () => {
+
+            searchInput.value = '';
+            distanceFilter.value = 'all';
+            sortFilter.value = 'nearest';
+
+            applyFilters();
+        });
+
+        // Escape external text in map popups
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            })[char]);
+        }
+        // Initialize filters and display restaurant markers on page load
+        applyFilters();
+    </script>
+
+    {% endif %}
 
 </body>
 </html>

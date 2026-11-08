@@ -1,17 +1,283 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Restaurant Recommendations</title>
-    <link rel="stylesheet" type="text/css" href="/static/index.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Flavour Quest | Discover Great Food</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='index.css') }}">
 </head>
+
 <body>
-<div class="index-card">
-    <h1 class="header">Restaurant Recommendations</h1>
-    <form action="/" method="POST">
-        <label for="location" class="form-label">Desired Location:</label>
-        <input type="text" id="location" name="location" class="form-input" required><br><br>
-        <input type="submit" value="Search" class="submit-button">
-    </form>
-</div>
+
+    <nav class="navbar">
+        <a href="/" class="brand">Flavour Quest<span>.</span></a>
+
+        <div class="nav-right">
+            <span>Discover your next favourite place</span>
+            <a href="#discover" class="nav-link">Explore <span>↗</span></a>
+        </div>
+    </nav>
+
+    <main>
+
+        <section class="hero">
+
+            <div class="hero-content">
+
+                <div class="eyebrow">
+                    <span class="eyebrow-line"></span>
+                    YOUR LOCAL FOOD GUIDE
+                </div>
+
+                <h1>
+                    Good food.<br>
+                    Great places.<br>
+                    <span>New discoveries.</span>
+                </h1>
+
+                <p class="hero-description">
+                    Find restaurants around you, explore the neighbourhood
+                    and discover somewhere worth visiting.
+                </p>
+
+                <div class="search-section" id="discover">
+
+                    <form action="/" method="POST" class="search-form">
+
+                        <label for="location">Where are you craving to explore?</label>
+
+                    <div class="search-input-row">
+                        <span class="location-icon">⌖</span>
+
+                        <input
+                            type="text"
+                            id="location"
+                            name="location"
+                            placeholder="Enter a city, area or locality..."
+                            autocomplete="off"
+                        >
+
+                        <input
+                            type="hidden"
+                            id="latitude"
+                            name="latitude"
+                        >
+
+                        <input
+                            type="hidden"
+                            id="longitude"
+                            name="longitude"
+                        >
+
+                        <button type="submit" class="search-button">
+                            Find restaurants <span>→</span>
+                        </button>
+                    </div>
+
+                    <button type="button" id="currentLocationBtn" class="current-location-button">
+                        <span>⌖</span> Use my current location
+                    </button>
+
+                    <p id="locationStatus" class="location-status" role="status" aria-live="polite"></p>
+
+                    </form>
+
+                    {% if error %}
+                    <div class="error-message" role="alert">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <p class="search-hint">
+                        <span>✦</span>
+                        Discover restaurants around your chosen location
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="hero-visual">
+
+                <div class="image-main">
+                    <img
+                        src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1100&q=85"
+                        alt="Warm and inviting restaurant interior"
+                    >
+                </div>
+
+                <div class="image-accent">
+                    <img
+                        src="https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=600&q=85"
+                        alt="Freshly prepared colourful food"
+                    >
+                </div>
+
+                <div class="visual-note">
+                    <span class="note-icon">✳</span>
+                    <div>
+                        <strong>Your next favourite</strong>
+                        <small>Place to eat awaits</small>
+                    </div>
+                </div>
+
+                <div class="visual-decoration">FQ</div>
+
+            </div>
+
+        </section>
+
+        <section class="feature-strip">
+
+            <div class="feature-item">
+                <span class="feature-icon">⌖</span>
+                <div>
+                    <strong>Explore nearby</strong>
+                    <p>Find places around your location</p>
+                </div>
+            </div>
+
+            <div class="feature-item">
+                <span class="feature-icon">◎</span>
+                <div>
+                    <strong>Discover on the map</strong>
+                    <p>See restaurants around you</p>
+                </div>
+            </div>
+
+            <div class="feature-item">
+                <span class="feature-icon">✦</span>
+                <div>
+                    <strong>Find your next favourite</strong>
+                    <p>Make your next food discovery</p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <a href="/" class="footer-brand">Flavour Quest<span>.</span></a>
+        <p>Made for curious food explorers.</p>
+    </footer>
+
+    
+<script>
+    const currentLocationBtn = document.getElementById("currentLocationBtn");
+    const locationInput = document.getElementById("location");
+    const latitudeInput = document.getElementById("latitude");
+    const longitudeInput = document.getElementById("longitude");
+    const locationStatus = document.getElementById("locationStatus");
+
+    currentLocationBtn.addEventListener("click", function () {
+
+        // Check browser geolocation support
+        if (!navigator.geolocation) {
+            locationStatus.textContent =
+                "Your browser does not support location detection.";
+            return;
+        }
+
+        // Show loading status
+        currentLocationBtn.disabled = true;
+        currentLocationBtn.textContent = "Detecting your location...";
+        locationStatus.textContent = "Please allow location access when prompted.";
+
+        navigator.geolocation.getCurrentPosition(
+
+            async function (position) {
+
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+
+                try {
+
+                    // Send coordinates to Flask for reverse geocoding
+                    const response = await fetch("/reverse-geocode", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            latitude: latitude,
+                            longitude: longitude
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(
+                            data.error || "Unable to identify your location."
+                        );
+                    }
+
+                    // Populate the search form
+                    locationInput.value = data.address;
+                    latitudeInput.value = latitude;
+                    longitudeInput.value = longitude;
+
+                    locationStatus.textContent =
+                        "Location detected successfully!";
+
+                } catch (error) {
+
+                    locationStatus.textContent =
+                        error.message || "Unable to retrieve your address.";
+
+                } finally {
+
+                    currentLocationBtn.disabled = false;
+                    currentLocationBtn.innerHTML =
+                        "<span>⌖</span> Use my current location";
+                }
+            },
+
+            function (error) {
+
+                let message = "Unable to detect your location.";
+
+                if (error.code === error.PERMISSION_DENIED) {
+                    message = "Location permission was denied. Please allow access in your browser.";
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    message = "Your current location is unavailable.";
+                } else if (error.code === error.TIMEOUT) {
+                    message = "Location request timed out. Please try again.";
+                }
+
+                locationStatus.textContent = message;
+
+                currentLocationBtn.disabled = false;
+                currentLocationBtn.innerHTML =
+                    "<span>⌖</span> Use my current location";
+            },
+
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0
+            }
+        );
+    });
+
+    // Clear old coordinates when the user manually changes the location
+    locationInput.addEventListener("input", function () {
+        latitudeInput.value = "";
+        longitudeInput.value = "";
+        locationStatus.textContent = "";
+    });
+</script>
+
 </body>
 </html>
