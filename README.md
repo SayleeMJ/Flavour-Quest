@@ -16,13 +16,13 @@ The project was originally developed as an individual university project and lat
 
 ### Home Page
 
-![Flavour Quest Home Page](screenshots/HomePage.png)
+![Flavour Quest Home Page](https://github.com/SayleeMJ/Flavour-Quest/blob/main/ScreenShots/HomePage.png)
 
 ### Restaurant Results
 
-![Flavour Quest Restaurant Results](screenshots/RestaurantPage.png)
+![Flavour Quest Restaurant Results](https://github.com/SayleeMJ/Flavour-Quest/blob/main/ScreenShots/RestaurantPage.png)
 
-![Flavour Quest Restaurant Results](screenshots/RestaurantPage2.png)
+![Flavour Quest Restaurant Results](https://github.com/SayleeMJ/Flavour-Quest/blob/main/ScreenShots/RestaurantPage2.png)
 
 
 ## Features
