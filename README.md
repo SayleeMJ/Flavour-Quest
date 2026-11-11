@@ -25,6 +25,12 @@ The project was originally developed as an individual university project and lat
 ![Flavour Quest Restaurant Results](https://github.com/SayleeMJ/Flavour-Quest/blob/main/ScreenShots/RestaurantPage2.png)
 
 
+## Architecture
+
+The following diagram illustrates the architecture of Flavour Quest, including its frontend, Flask backend, deployment environment, and external services.
+
+![Flavour Quest Application Architecture](https://github.com/SayleeMJ/Flavour-Quest/blob/main/docs/FlavourQuestArchitecture.png)
+
 ## Features
 
 - **Location-based search:** Search for restaurants using a manually entered location.
